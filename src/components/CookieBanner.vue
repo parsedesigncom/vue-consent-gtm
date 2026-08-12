@@ -3,10 +3,19 @@ import { ref, reactive, computed, watch } from 'vue'
 import { useConsent } from '../useConsent.js'
 
 const consent = useConsent()
-const { categories, texts } = consent.options
+const { categories } = consent.options
 
 const showSettings = ref(false)
 const visible = computed(() => !consent.isDecided() || showSettings.value)
+
+const texts = computed(() => consent.texts)
+
+const localCategories = computed(() => Object.entries(categories).map(([key, cat]) => ({
+  key,
+  required: cat.required,
+  label: consent.localize(cat.label) || key,
+  description: consent.localize(cat.description) || ''
+})))
 
 const localChoices = reactive({})
 function syncFromState() {
@@ -56,17 +65,17 @@ function saveSelection() {
         </p>
 
         <div v-if="showSettings" class="pdc-categories">
-          <div v-for="(cat, key) in categories" :key="key" class="pdc-category">
+          <div v-for="cat in localCategories" :key="cat.key" class="pdc-category">
             <label class="pdc-category__row">
               <input
                 type="checkbox"
-                :checked="localChoices[key]"
+                :checked="localChoices[cat.key]"
                 :disabled="cat.required"
-                @change="localChoices[key] = $event.target.checked"
+                @change="localChoices[cat.key] = $event.target.checked"
               />
               <span class="pdc-category__label">
                 {{ cat.label }}
-                <span v-if="cat.required" class="pdc-badge">Pflicht</span>
+                <span v-if="cat.required" class="pdc-badge">{{ texts.required }}</span>
               </span>
             </label>
             <p v-if="cat.description" class="pdc-category__desc">{{ cat.description }}</p>

@@ -9,12 +9,14 @@ app.use(VueConsentGtm, {
   consentVersion: Number(import.meta.env.VITE_CONSENT_VERSION || 1),
   expiryDays: Number(import.meta.env.VITE_CONSENT_EXPIRY_DAYS || 182),
   loadGtmOnlyAfterConsent: String(import.meta.env.VITE_LOAD_GTM_ONLY_AFTER_CONSENT).toLowerCase() === 'true',
+  locale: 'auto',
+  fallbackLocale: 'en',
   texts: {
-    policyLinkHref: '#datenschutz',
-    policyLinkLabel: 'Datenschutzerklärung'
+    de: { policyLinkHref: '#datenschutz' },
+    en: { policyLinkHref: '#privacy' }
   },
   onConsentChange(choices) {
-    console.log('[demo] Consent geändert:', choices)
+    console.log('[demo] Consent changed:', choices)
   }
 })
 

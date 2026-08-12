@@ -101,7 +101,7 @@ function onCta() {
 
 ### Manager-API
 
-| Methode | Beschreibung |
+| Methode / Property | Beschreibung |
 |---|---|
 | `hasConsent(key)` | Prüft, ob für die Kategorie eingewilligt wurde |
 | `isDecided()` | Wurde bereits eine Entscheidung getroffen? |
@@ -111,6 +111,11 @@ function onCta() {
 | `reset()` | Einwilligung löschen (Banner erscheint erneut) |
 | `trackEvent(event, params, { requires })` | Pusht nur bei entsprechender Zustimmung |
 | `push(obj)` | Direkter `dataLayer.push` |
+| `locale` | Aktive Sprache (`'de'` oder `'en'`), reaktiv |
+| `texts` | Aufgelöste Texte für die aktive Sprache |
+| `supportedLocales` | Liste der eingebauten Sprachen |
+| `setLocale(loc)` | Sprache setzen (`'de'`, `'en'` oder `'auto'` für Browser-Detection) |
+| `localize(value)` | Löst einen `{ de, en }`-Wert für die aktive Sprache auf |
 
 In Options-API / Templates auch als `$consent` verfügbar.
 
@@ -121,9 +126,73 @@ In Options-API / Templates auch als `$consent` verfügbar.
 | `gtmId` | `string` | — | **Pflicht.** GTM-Container-ID |
 | `consentVersion` | `number` | `1` | Erhöhen invalidiert gespeicherte Einwilligung |
 | `expiryDays` | `number` | `182` | Gültigkeitsdauer der Zustimmung |
-| `categories` | `object` | Standard | Definition der Kategorien und deren Consent-Signale |
+| `categories` | `object` | Standard | Kategorien-Definition mit lokalisierten Labels |
 | `loadGtmOnlyAfterConsent` | `boolean` | `false` | Strengste Auslegung: GTM erst nach Zustimmung laden |
+| `locale` | `'auto' \| 'de' \| 'en'` | `'auto'` | Startsprache. `'auto'` erkennt Browser-Sprache |
+| `fallbackLocale` | `'de' \| 'en'` | `'en'` | Sprache wenn Browser-Detection nicht greift |
+| `texts` | `object` | — | Text-Overrides pro Sprache: `{ de: {...}, en: {...} }` |
 | `onConsentChange` | `function` | — | Callback bei jeder Änderung |
+
+## Mehrsprachigkeit (i18n)
+
+Das Plugin liefert DE und EN out-of-the-box. Die Sprache wird automatisch anhand des Browsers erkannt: startet `navigator.language` mit `de` → Deutsch, sonst Englisch (bzw. der eingestellte `fallbackLocale`).
+
+**Feste Sprache:**
+```js
+app.use(VueConsentGtm, { gtmId: '…', locale: 'de' })
+```
+
+**Automatische Erkennung mit Fallback:**
+```js
+app.use(VueConsentGtm, { gtmId: '…', locale: 'auto', fallbackLocale: 'en' })
+```
+
+**Einzelne Texte überschreiben — pro Sprache:**
+```js
+app.use(VueConsentGtm, {
+  gtmId: '…',
+  texts: {
+    de: {
+      title: 'Cookies bei Merci-Snacks',
+      policyLinkHref: '/datenschutz',
+      policyLinkLabel: 'Datenschutz'
+    },
+    en: {
+      title: 'Cookies at Merci-Snacks',
+      policyLinkHref: '/privacy',
+      policyLinkLabel: 'Privacy policy'
+    }
+  }
+})
+```
+
+Alle nicht überschriebenen Keys fallen auf die Default-Texte zurück.
+
+**Verfügbare Text-Keys** (pro Sprache identisch):
+`title`, `body`, `acceptAll`, `rejectAll`, `settings`, `save`, `close`, `required`, `policyLinkLabel`, `policyLinkHref`
+
+**Eigene Kategorie-Labels lokalisieren:**
+```js
+categories: {
+  necessary: { /* … */ },
+  custom: {
+    required: false,
+    signals: ['analytics_storage'],
+    label: { de: 'Video-Player', en: 'Video player' },
+    description: {
+      de: 'Bindet externe Video-Player ein.',
+      en: 'Embeds external video players.'
+    }
+  }
+}
+```
+
+**Runtime-Sprachwechsel** (z. B. wenn deine App einen eigenen Sprach-Switcher hat):
+```js
+const consent = useConsent()
+consent.setLocale('en')       // sofort Englisch
+consent.setLocale('auto')     // zurück zur Browser-Erkennung
+```
 
 ## Standard-Kategorien
 

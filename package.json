@@ -1,6 +1,6 @@
 {
   "name": "vue-consent-gtm",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DSGVO-konformes Cookie-Consent-Plugin für Vue 3 mit Google Tag Manager Consent Mode v2",
   "type": "module",
   "main": "./dist/vue-consent-gtm.umd.cjs",
