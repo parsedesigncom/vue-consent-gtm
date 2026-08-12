@@ -43,6 +43,43 @@ app.mount('#app')
 
 Die Banner-Komponente wird automatisch eingebunden, sobald noch keine Entscheidung getroffen wurde.
 
+## Config-Quelle wählen
+
+Das Plugin erwartet nur ein Objekt in `app.use(...)`. Woher die Werte kommen, bleibt dir überlassen. Vier gängige Muster:
+
+**A) Hardcoded** — einfachster Fall, eine Umgebung:
+```js
+app.use(VueConsentGtm, { gtmId: 'GTM-XXXXXXX' })
+```
+
+**B) Eigene Config-Datei** — sauber trennen, keine Build-Tool-Magie:
+```js
+// src/config/consent.js
+export const consentConfig = { gtmId: 'GTM-XXXXXXX' }
+
+// main.js
+import { consentConfig } from './config/consent.js'
+app.use(VueConsentGtm, consentConfig)
+```
+
+**C) `.env` via Vite / Nuxt / Vue-CLI** — Standard bei Multi-Environment:
+```env
+# .env
+VITE_GTM_ID=GTM-XXXXXXX
+```
+```js
+app.use(VueConsentGtm, { gtmId: import.meta.env.VITE_GTM_ID })
+```
+
+**D) Runtime-Config aus Meta-Tag oder JSON** — für CMS-getriebene Sites oder ein-Build-für-alle-Umgebungen:
+```html
+<meta name="gtm-id" content="GTM-XXXXXXX">
+```
+```js
+const gtmId = document.querySelector('meta[name="gtm-id"]')?.content
+app.use(VueConsentGtm, { gtmId })
+```
+
 ## Composable `useConsent()`
 
 ```vue
