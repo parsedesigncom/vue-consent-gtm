@@ -56,7 +56,8 @@ export const DEFAULT_OPTIONS = {
   locale: 'auto',
   fallbackLocale: 'en',
   texts: null,
-  floatingButton: DEFAULT_FLOATING_BUTTON
+  floatingButton: DEFAULT_FLOATING_BUTTON,
+  theme: null
 }
 
 export function normalizeOptions(userOptions = {}) {

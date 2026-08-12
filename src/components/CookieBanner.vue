@@ -1,9 +1,12 @@
 <script setup>
 import { reactive, computed, watch } from 'vue'
 import { useConsent } from '../useConsent.js'
+import { themeToStyles } from '../theme.js'
 
 const consent = useConsent()
 const { categories } = consent.options
+
+const themeStyles = computed(() => themeToStyles(consent.options.theme))
 
 const showSettings = computed(() => consent.showSettings)
 const visible = computed(() => !consent.isDecided() || consent.showSettings)
@@ -46,7 +49,7 @@ function saveSelection() {
 </script>
 
 <template>
-  <div v-if="visible" class="pdc-root" role="dialog" aria-modal="true" :aria-label="texts.title">
+  <div v-if="visible" class="pdc-root" :style="themeStyles" role="dialog" aria-modal="true" :aria-label="texts.title">
     <div class="pdc-backdrop" @click.self="consent.isDecided() ? closeSettings() : null" />
 
     <div class="pdc-panel" :class="{ 'pdc-panel--settings': showSettings }">
@@ -134,9 +137,11 @@ function saveSelection() {
   justify-content: center;
   padding: 16px;
   pointer-events: none;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: Arial, sans-serif;
   color: var(--pdc-text);
 }
+
+.pdc-root, .pdc-root * { font-family: Arial, sans-serif; }
 
 .pdc-backdrop {
   position: absolute;

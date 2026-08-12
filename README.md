@@ -8,7 +8,8 @@ Ein wiederverwendbares, **DSGVO-konformes Cookie-Consent-Plugin für Vue 3** mit
 - Granulare Kategorien, Versionierung, Ablauf, Widerruf
 - **i18n out-of-the-box** (DE + EN) mit Browser-Detection
 - **Floating Cookie-Button** für den Widerruf auf jeder Seite
-- Anpassbar per CSS-Variablen (`--pdc-*`)
+- **Farben aus dem Config** anpassbar (Fallback auf sinnvolle Defaults)
+- Feste Schriftart **Arial** — keine Font-Konflikte mit der Host-App
 
 ---
 
@@ -66,6 +67,12 @@ app.use(VueConsentGtm, {
   floatingButton: {
     enabled: true,
     position: 'bottom-left'    // 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+  },
+
+  // Farben & Optik (alles optional, fällt auf Defaults zurück)
+  theme: {
+    primary: '#e11d48',
+    radius: '14px'
   },
 
   onConsentChange(choices) {
@@ -170,6 +177,7 @@ In Options-API / Templates auch als `$consent` verfügbar.
 | `fallbackLocale` | `'de' \| 'en'` | `'en'` | Sprache wenn Browser-Detection nicht greift |
 | `texts` | `object` | — | Text-Overrides pro Sprache: `{ de: {...}, en: {...} }` |
 | `floatingButton` | `object` | `{ enabled: true, position: 'bottom-left' }` | Schwebender Cookie-Button für Widerruf. `position`: `'bottom-left' \| 'bottom-right' \| 'top-left' \| 'top-right'` |
+| `theme` | `object` | — | Farben und Optik (siehe [Theme](#theme-farben--optik)). Alles optional, jeder Key hat einen Default |
 | `onConsentChange` | `function` | — | Callback bei jeder Änderung |
 
 ## Mehrsprachigkeit (i18n)
@@ -232,6 +240,63 @@ const consent = useConsent()
 consent.setLocale('en')       // sofort Englisch
 consent.setLocale('auto')     // zurück zur Browser-Erkennung
 ```
+
+## Theme (Farben & Optik)
+
+Über die `theme`-Option lassen sich Farben, Radien, Schatten und die Größe/Position des Floating Buttons direkt aus dem Config setzen — ohne globales CSS. Alles ist optional; wird ein Key nicht gesetzt, greifen die eingebauten Defaults.
+
+```js
+app.use(VueConsentGtm, {
+  gtmId: '…',
+  theme: {
+    primary: '#e11d48',           // Buttons „Akzeptieren", Fokusring
+    primaryContrast: '#ffffff',   // Text auf Primary
+    bg: '#ffffff',                // Panel-Hintergrund
+    text: '#111827',              // Text
+    muted: '#6b7280',             // Beschreibungstext, sekundäre Infos
+    border: '#e5e7eb',            // Rahmen
+    secondaryBg: '#f2f4f7',       // „Ablehnen" / „Speichern"-Buttons
+    secondaryText: '#111827',
+    radius: '14px',               // Panel- und Button-Radius
+    shadow: '0 12px 32px rgba(0,0,0,0.18)',
+    maxWidth: '640px',            // Panel-Breite
+    backdrop: 'rgba(0,0,0,0.35)', // Overlay
+
+    // Floating Cookie-Button
+    fabSize: '44px',
+    fabBg: '#ffffff',
+    fabColor: '#111827',
+    fabBorder: '#e5e7eb',
+    fabShadow: '0 4px 14px rgba(0,0,0,0.15)',
+    fabHoverBg: '#f9fafb',
+    fabOffset: '20px'
+  }
+})
+```
+
+**Beispiel — nur die Primary-Farbe der Marke setzen:**
+```js
+theme: { primary: '#e11d48' }
+```
+
+**Beispiel — Dark-Mode:**
+```js
+theme: {
+  bg: '#1a1a1a',
+  text: '#eeeeee',
+  muted: '#a1a1aa',
+  border: '#333',
+  secondaryBg: '#2a2a2a',
+  secondaryText: '#eeeeee',
+  fabBg: '#1a1a1a',
+  fabColor: '#eeeeee',
+  fabBorder: '#333'
+}
+```
+
+> Font ist fest auf **Arial** — bewusst, damit das Banner in jeder Host-App identisch aussieht und keine Font-Konflikte auftreten. Wenn du eigene Fonts brauchst, ersetze die Standard-Komponente (siehe „Eigene UI" unten).
+
+`theme` schreibt die Werte als **Inline-CSS-Variablen** auf die Komponente. Wenn du sie zusätzlich per CSS (z. B. Media-Query fürs Dark-Mode) übersteuern willst, brauchst du `!important` oder eine höhere Selektor-Spezifität — oder du setzt einfach nur eines von beiden.
 
 ## Standard-Kategorien
 

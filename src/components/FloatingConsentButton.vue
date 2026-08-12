@@ -1,11 +1,13 @@
 <script setup>
 import { computed } from 'vue'
 import { useConsent } from '../useConsent.js'
+import { themeToStyles } from '../theme.js'
 
 const consent = useConsent()
 
 const visible = computed(() => consent.isDecided() && !consent.showSettings)
 const label = computed(() => consent.texts.cookieSettings)
+const themeStyles = computed(() => themeToStyles(consent.options.theme))
 const positionClass = computed(() => {
   const pos = consent.options.floatingButton?.position || 'bottom-left'
   return `pdc-fab--${pos}`
@@ -22,6 +24,7 @@ function open() {
     type="button"
     class="pdc-fab"
     :class="positionClass"
+    :style="themeStyles"
     :aria-label="label"
     :title="label"
     @click="open"
@@ -41,6 +44,7 @@ function open() {
 
 <style>
 .pdc-fab {
+  font-family: Arial, sans-serif;
   --pdc-fab-size: 44px;
   --pdc-fab-bg: #ffffff;
   --pdc-fab-color: #111827;

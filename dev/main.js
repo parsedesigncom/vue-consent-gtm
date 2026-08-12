@@ -15,6 +15,10 @@ app.use(VueConsentGtm, {
     de: { policyLinkHref: '#datenschutz' },
     en: { policyLinkHref: '#privacy' }
   },
+  theme: {
+    primary: '#0057ff',
+    radius: '12px'
+  },
   onConsentChange(choices) {
     console.log('[demo] Consent changed:', choices)
   }
