@@ -1,12 +1,12 @@
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { reactive, computed, watch } from 'vue'
 import { useConsent } from '../useConsent.js'
 
 const consent = useConsent()
 const { categories } = consent.options
 
-const showSettings = ref(false)
-const visible = computed(() => !consent.isDecided() || showSettings.value)
+const showSettings = computed(() => consent.showSettings)
+const visible = computed(() => !consent.isDecided() || consent.showSettings)
 
 const texts = computed(() => consent.texts)
 
@@ -26,26 +26,22 @@ function syncFromState() {
 syncFromState()
 
 watch(() => consent.state.choices, syncFromState, { deep: true })
+watch(() => consent.showSettings, (open) => { if (open) syncFromState() })
 
-function openSettings() {
-  syncFromState()
-  showSettings.value = true
-}
-function closeSettings() {
-  showSettings.value = false
-}
+function openSettings() { consent.openSettings() }
+function closeSettings() { consent.closeSettings() }
 
 function acceptAll() {
   consent.acceptAll()
-  showSettings.value = false
+  consent.closeSettings()
 }
 function rejectAll() {
   consent.rejectAll()
-  showSettings.value = false
+  consent.closeSettings()
 }
 function saveSelection() {
   consent.save({ ...localChoices })
-  showSettings.value = false
+  consent.closeSettings()
 }
 </script>
 

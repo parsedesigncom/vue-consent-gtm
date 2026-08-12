@@ -54,12 +54,14 @@ function fireMarketing() {
       <div class="row">
         <button @click="consent.acceptAll()">acceptAll()</button>
         <button @click="consent.rejectAll()">rejectAll()</button>
+        <button @click="consent.openSettings()">openSettings() — reopen settings dialog</button>
         <button @click="consent.reset()">reset() — reopen banner</button>
       </div>
       <div class="row">
         <button @click="fireAnalytics">trackEvent (requires: analytics)</button>
         <button @click="fireMarketing">trackEvent (requires: marketing)</button>
       </div>
+      <p class="hint">A floating cookie button is visible in the bottom-left corner once a decision has been made.</p>
     </section>
   </main>
 </template>

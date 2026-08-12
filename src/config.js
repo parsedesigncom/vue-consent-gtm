@@ -37,6 +37,11 @@ export const DEFAULT_CATEGORIES = {
   }
 }
 
+export const DEFAULT_FLOATING_BUTTON = {
+  enabled: true,
+  position: 'bottom-left'
+}
+
 export const DEFAULT_OPTIONS = {
   gtmId: null,
   consentVersion: 1,
@@ -50,7 +55,8 @@ export const DEFAULT_OPTIONS = {
   autoMountBanner: true,
   locale: 'auto',
   fallbackLocale: 'en',
-  texts: null
+  texts: null,
+  floatingButton: DEFAULT_FLOATING_BUTTON
 }
 
 export function normalizeOptions(userOptions = {}) {
@@ -67,7 +73,11 @@ export function normalizeOptions(userOptions = {}) {
   const merged = {
     ...DEFAULT_OPTIONS,
     ...userOptions,
-    categories: mergedCategories
+    categories: mergedCategories,
+    floatingButton: {
+      ...DEFAULT_FLOATING_BUTTON,
+      ...(userOptions.floatingButton || {})
+    }
   }
 
   if (!merged.gtmId) {

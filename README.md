@@ -6,6 +6,8 @@ Ein wiederverwendbares, **DSGVO-konformes Cookie-Consent-Plugin für Vue 3** mit
 - Trennung von Logik und UI — eigene Banner-Komponente möglich
 - Consent Mode v2 Default `denied`, Update erst nach Nutzerentscheidung
 - Granulare Kategorien, Versionierung, Ablauf, Widerruf
+- **i18n out-of-the-box** (DE + EN) mit Browser-Detection
+- **Floating Cookie-Button** für den Widerruf auf jeder Seite
 - Anpassbar per CSS-Variablen (`--pdc-*`)
 
 ---
@@ -18,7 +20,7 @@ npm install vue-consent-gtm
 
 ## Einbindung
 
-In der `main.js` / `main.ts` deiner Vue-3-App:
+### Minimal — nur GTM-ID
 
 ```js
 import { createApp } from 'vue'
@@ -27,21 +29,52 @@ import VueConsentGtm from 'vue-consent-gtm'
 import 'vue-consent-gtm/style.css'
 
 const app = createApp(App)
+app.use(VueConsentGtm, { gtmId: 'GTM-XXXXXXX' })
+app.mount('#app')
+```
 
+Damit ist alles aktiv: Banner, Browser-Sprachendetection (DE/EN), Consent Mode v2 default `denied`, Floating-Button für den Widerruf nach der ersten Entscheidung.
+
+### Komplettes Beispiel mit allen Optionen
+
+```js
 app.use(VueConsentGtm, {
   gtmId: 'GTM-XXXXXXX',
   consentVersion: 1,
   expiryDays: 182,
   loadGtmOnlyAfterConsent: false,
+
+  // Sprache
+  locale: 'auto',              // 'auto' | 'de' | 'en'
+  fallbackLocale: 'en',
+
+  // Text-Overrides pro Sprache (optional)
+  texts: {
+    de: {
+      title: 'Cookies bei Merci-Snacks',
+      policyLinkHref: '/datenschutz',
+      policyLinkLabel: 'Datenschutz'
+    },
+    en: {
+      title: 'Cookies at Merci-Snacks',
+      policyLinkHref: '/privacy',
+      policyLinkLabel: 'Privacy policy'
+    }
+  },
+
+  // Widerruf-Button (Cookie-Icon)
+  floatingButton: {
+    enabled: true,
+    position: 'bottom-left'    // 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+  },
+
   onConsentChange(choices) {
-    console.log('Consent geändert:', choices)
+    console.log('Consent changed:', choices)
   }
 })
-
-app.mount('#app')
 ```
 
-Die Banner-Komponente wird automatisch eingebunden, sobald noch keine Entscheidung getroffen wurde.
+Der Banner erscheint automatisch, wenn noch keine Entscheidung getroffen wurde. Nach der Entscheidung erscheint der Cookie-Button an der konfigurierten Position.
 
 ## Config-Quelle wählen
 
@@ -94,10 +127,12 @@ function onCta() {
 </script>
 
 <template>
-  <button v-if="consent.hasConsent('marketing')">Marketing aktiv</button>
-  <button @click="consent.reset()">Cookie-Einstellungen ändern</button>
+  <button v-if="consent.hasConsent('marketing')">Marketing active</button>
+  <button @click="consent.openSettings()">{{ consent.texts.cookieSettings }}</button>
 </template>
 ```
+
+> Tipp: `openSettings()` öffnet nur den Einstellungs-Dialog (Nutzer kann Auswahl ändern). `reset()` löscht die gespeicherte Einwilligung komplett — der Banner erscheint danach wieder wie beim ersten Besuch.
 
 ### Manager-API
 
@@ -116,6 +151,9 @@ function onCta() {
 | `supportedLocales` | Liste der eingebauten Sprachen |
 | `setLocale(loc)` | Sprache setzen (`'de'`, `'en'` oder `'auto'` für Browser-Detection) |
 | `localize(value)` | Löst einen `{ de, en }`-Wert für die aktive Sprache auf |
+| `openSettings()` | Einstellungs-Dialog öffnen (auch nach erteilter Zustimmung) — für Widerruf |
+| `closeSettings()` | Einstellungs-Dialog schließen |
+| `showSettings` | Ist der Einstellungs-Dialog gerade offen? (reaktiv) |
 
 In Options-API / Templates auch als `$consent` verfügbar.
 
@@ -131,6 +169,7 @@ In Options-API / Templates auch als `$consent` verfügbar.
 | `locale` | `'auto' \| 'de' \| 'en'` | `'auto'` | Startsprache. `'auto'` erkennt Browser-Sprache |
 | `fallbackLocale` | `'de' \| 'en'` | `'en'` | Sprache wenn Browser-Detection nicht greift |
 | `texts` | `object` | — | Text-Overrides pro Sprache: `{ de: {...}, en: {...} }` |
+| `floatingButton` | `object` | `{ enabled: true, position: 'bottom-left' }` | Schwebender Cookie-Button für Widerruf. `position`: `'bottom-left' \| 'bottom-right' \| 'top-left' \| 'top-right'` |
 | `onConsentChange` | `function` | — | Callback bei jeder Änderung |
 
 ## Mehrsprachigkeit (i18n)
@@ -169,7 +208,7 @@ app.use(VueConsentGtm, {
 Alle nicht überschriebenen Keys fallen auf die Default-Texte zurück.
 
 **Verfügbare Text-Keys** (pro Sprache identisch):
-`title`, `body`, `acceptAll`, `rejectAll`, `settings`, `save`, `close`, `required`, `policyLinkLabel`, `policyLinkHref`
+`title`, `body`, `acceptAll`, `rejectAll`, `settings`, `save`, `close`, `required`, `cookieSettings`, `policyLinkLabel`, `policyLinkHref`
 
 **Eigene Kategorie-Labels lokalisieren:**
 ```js
@@ -205,21 +244,113 @@ consent.setLocale('auto')     // zurück zur Browser-Erkennung
 
 Bei Kollision zwischen Kategorien gilt: **granted gewinnt**.
 
+## Widerruf & Einstellungen erneut öffnen
+
+DSGVO verlangt, dass der Widerruf **so einfach ist wie die Erteilung**. Das Plugin bietet dafür zwei Wege:
+
+**1) Automatischer Floating Button** (Default)
+Nach der ersten Entscheidung erscheint unten links ein kleiner Cookie-Button. Klick öffnet den Einstellungs-Dialog. Position konfigurierbar:
+
+```js
+app.use(VueConsentGtm, {
+  gtmId: '…',
+  floatingButton: { enabled: true, position: 'bottom-right' }
+})
+```
+
+**2) Eigener Trigger** (Footer-Link, Menü-Eintrag, etc.)
+Wenn du den Floating Button ausschaltest und stattdessen deinen eigenen Trigger im Layout platzieren willst:
+
+```js
+app.use(VueConsentGtm, {
+  gtmId: '…',
+  floatingButton: { enabled: false }
+})
+```
+
+```vue
+<script setup>
+import { useConsent } from 'vue-consent-gtm'
+const consent = useConsent()
+</script>
+
+<template>
+  <footer>
+    <button @click="consent.openSettings()">{{ consent.texts.cookieSettings }}</button>
+  </footer>
+</template>
+```
+
+**Kompletter Widerruf** (Zustimmung löschen und Banner erneut zeigen):
+```js
+consent.reset()
+```
+
 ## Styling
 
-Alle Farben, Radien und Abstände sind per CSS-Variablen anpassbar:
+Alle Farben, Radien und Abstände sind per CSS-Variablen anpassbar.
 
+**Banner + Einstellungs-Dialog:**
 ```css
-:root {
+.pdc-root {
   --pdc-primary: #0057ff;
+  --pdc-primary-contrast: #ffffff;
+  --pdc-secondary-bg: #f2f4f7;
+  --pdc-secondary-text: #111827;
   --pdc-bg: #ffffff;
-  --pdc-text: #111111;
-  --pdc-radius: 8px;
-  /* ... */
+  --pdc-text: #111827;
+  --pdc-muted: #6b7280;
+  --pdc-border: #e5e7eb;
+  --pdc-radius: 10px;
+  --pdc-shadow: 0 12px 32px rgba(0,0,0,0.18);
+  --pdc-max-width: 640px;
+  --pdc-backdrop: rgba(0,0,0,0.35);
 }
 ```
 
-Du kannst die Standard-Komponente auch komplett ersetzen und lediglich `useConsent()` in deiner eigenen UI verwenden.
+**Floating Cookie-Button:**
+```css
+.pdc-fab {
+  --pdc-fab-size: 44px;
+  --pdc-fab-bg: #ffffff;
+  --pdc-fab-color: #111827;
+  --pdc-fab-border: #e5e7eb;
+  --pdc-fab-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  --pdc-fab-hover-bg: #f9fafb;
+  --pdc-fab-offset: 20px;
+}
+```
+
+**Dark-Mode-Beispiel:**
+```css
+@media (prefers-color-scheme: dark) {
+  .pdc-root {
+    --pdc-bg: #1a1a1a;
+    --pdc-text: #eee;
+    --pdc-secondary-bg: #2a2a2a;
+    --pdc-secondary-text: #eee;
+    --pdc-border: #333;
+  }
+  .pdc-fab {
+    --pdc-fab-bg: #1a1a1a;
+    --pdc-fab-color: #eee;
+    --pdc-fab-border: #333;
+  }
+}
+```
+
+Du kannst die Standard-Komponente auch komplett ersetzen und lediglich `useConsent()` in deiner eigenen UI verwenden. Deaktiviere dazu Banner und Floating-Button:
+```js
+app.use(VueConsentGtm, {
+  gtmId: '…',
+  autoMountBanner: false,
+  floatingButton: { enabled: false }
+})
+```
+Und importiere bei Bedarf die Einzelkomponenten:
+```js
+import { CookieBanner, FloatingConsentButton } from 'vue-consent-gtm'
+```
 
 ## GTM-Setup (wichtig!)
 
@@ -238,10 +369,21 @@ Empfohlen: In den GTM-Einstellungen `url_passthrough` und `ads_data_redaction` a
 4. Kategorien einzeln wählbar im Einstellungs-Dialog
 5. Nachweisbar: Zeitstempel + Policy-Version im `localStorage`
 6. Erneute Abfrage bei geänderter `consentVersion` oder nach Ablauf
-7. Widerruf jederzeit über `reset()`
-8. Empfohlene GTM-Flags aktiv
+7. Widerruf jederzeit — via Floating-Button, `openSettings()` oder `reset()`
+8. Empfohlene GTM-Flags aktiv (`url_passthrough`, `ads_data_redaction`)
 
 > Hinweis: Vollständige Rechtssicherheit hängt zusätzlich von Datenschutzerklärung, konkretem GTM-Setup und ggf. anwaltlicher Prüfung ab.
+
+## Updates in deine SPA holen
+
+Neue Version des Plugins verfügbar? In der SPA:
+
+```bash
+npm update vue-consent-gtm            # holt neueste kompatible Version (^0.x)
+# oder gezielt:
+npm install vue-consent-gtm@latest
+npm ls vue-consent-gtm                # prüft welche Version installiert ist
+```
 
 ## Entwicklung
 

@@ -8,6 +8,7 @@ export const DEFAULT_TEXTS = {
     save: 'Auswahl speichern',
     close: 'Schließen',
     required: 'Pflicht',
+    cookieSettings: 'Cookie-Einstellungen',
     policyLinkLabel: 'Datenschutzerklärung',
     policyLinkHref: null
   },
@@ -20,6 +21,7 @@ export const DEFAULT_TEXTS = {
     save: 'Save selection',
     close: 'Close',
     required: 'Required',
+    cookieSettings: 'Cookie settings',
     policyLinkLabel: 'Privacy policy',
     policyLinkHref: null
   }

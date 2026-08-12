@@ -4,6 +4,7 @@ import { createStore } from './store.js'
 import { setConsentDefault, updateConsent, loadGtm, pushToDataLayer } from './gtm.js'
 import { resolveLocale, pickLocalized, getTextsForLocale, SUPPORTED_LOCALES } from './i18n.js'
 import CookieBanner from './components/CookieBanner.vue'
+import FloatingConsentButton from './components/FloatingConsentButton.vue'
 
 export const CONSENT_INJECTION_KEY = Symbol('vue-consent-gtm')
 
@@ -13,7 +14,8 @@ export function createConsentManager(userOptions) {
   setConsentDefault(options)
 
   const ui = reactive({
-    locale: resolveLocale(options.locale, options.fallbackLocale)
+    locale: resolveLocale(options.locale, options.fallbackLocale),
+    showSettings: false
   })
 
   const store = createStore(options)
@@ -52,6 +54,7 @@ export function createConsentManager(userOptions) {
     get locale() { return ui.locale },
     get texts() { return getTextsForLocale(options.texts, ui.locale, options.fallbackLocale) },
     get supportedLocales() { return SUPPORTED_LOCALES.slice() },
+    get showSettings() { return ui.showSettings },
 
     setLocale(loc) {
       ui.locale = (loc && loc !== 'auto')
@@ -61,6 +64,9 @@ export function createConsentManager(userOptions) {
     localize(value) {
       return pickLocalized(value, ui.locale, options.fallbackLocale)
     },
+
+    openSettings() { ui.showSettings = true },
+    closeSettings() { ui.showSettings = false },
 
     isDecided: () => store._internalState.decided,
     hasConsent: (key) => store.hasConsent(key),
@@ -79,6 +85,7 @@ export function createConsentManager(userOptions) {
     },
     reset() {
       store.reset()
+      ui.showSettings = false
       notifyChange()
     },
 
@@ -106,18 +113,24 @@ function hasAnyOptionalGranted(choices, options) {
   return false
 }
 
-function mountBanner(app, manager) {
+function mountConsentUI(manager) {
   if (typeof document === 'undefined') return
   const host = document.createElement('div')
-  host.setAttribute('data-pdc-banner-host', '')
+  host.setAttribute('data-pdc-host', '')
   document.body.appendChild(host)
 
-  const bannerApp = createApp({
-    render: () => h(CookieBanner)
+  const uiApp = createApp({
+    render() {
+      const children = [h(CookieBanner)]
+      if (manager.options.floatingButton?.enabled) {
+        children.push(h(FloatingConsentButton))
+      }
+      return h('div', children)
+    }
   })
-  bannerApp.provide(CONSENT_INJECTION_KEY, manager)
-  bannerApp.config.globalProperties.$consent = manager
-  bannerApp.mount(host)
+  uiApp.provide(CONSENT_INJECTION_KEY, manager)
+  uiApp.config.globalProperties.$consent = manager
+  uiApp.mount(host)
 }
 
 const VueConsentGtm = {
@@ -128,7 +141,7 @@ const VueConsentGtm = {
     app.config.globalProperties.$consent = manager
 
     if (manager.options.autoMountBanner && typeof window !== 'undefined') {
-      mountBanner(app, manager)
+      mountConsentUI(manager)
     }
   }
 }
