@@ -417,14 +417,75 @@ Und importiere bei Bedarf die Einzelkomponenten:
 import { CookieBanner, FloatingConsentButton } from 'vue-consent-gtm'
 ```
 
-## GTM-Setup (wichtig!)
+## GTM-Setup — Schritt für Schritt
 
-Damit Consent tatsächlich wirkt, müssen deine Tags im GTM an die passenden Einwilligungs-Signale gebunden werden:
+Das Plugin liefert nur die **Consent-Signale** an den `dataLayer`. Ob deine Tags diese Signale respektieren, entscheidet sich im GTM-Container. Ohne die folgenden Schritte werden Tags trotz Ablehnung feuern — dann ist der Consent-Layer wirkungslos.
 
-- Google Analytics → `analytics_storage`
-- Google Ads / Meta Ads → `ad_storage`, `ad_user_data`, `ad_personalization`
+### 1) GTM-Container-ID besorgen
 
-Empfohlen: In den GTM-Einstellungen `url_passthrough` und `ads_data_redaction` aktivieren.
+In [tagmanager.google.com](https://tagmanager.google.com) einen Container anlegen (Web-Plattform). Die ID hat das Format `GTM-XXXXXXX` und wird als `gtmId` an das Plugin übergeben:
+
+```js
+app.use(VueConsentGtm, { gtmId: 'GTM-XXXXXXX' })
+```
+
+Das Plugin injiziert den GTM-Loader selbst. **Den GTM-Snippet-Code aus der GTM-Oberfläche nicht zusätzlich ins HTML kleben** — sonst wird GTM zweimal geladen und der Consent-Default kann zu spät kommen.
+
+### 2) Consent Overview in GTM aktivieren
+
+In GTM: **Admin → Container-Einstellungen → Consent Overview** aktivieren. Damit siehst du in der Tag-Liste eine Consent-Spalte und kannst pro Tag die benötigten Signale hinterlegen.
+
+### 3) Built-in-Consent-Signale pro Tag setzen
+
+Jedes Tag, das Cookies setzt oder personenbezogene Daten sendet, öffnen → **„Consent Settings"** → **„Require additional consent for tag to fire"** → passende Signale auswählen:
+
+| Tag-Typ | Erforderliche Signale |
+|---|---|
+| Google Analytics 4 (Config + Events) | `analytics_storage` |
+| Google Ads Conversion / Remarketing | `ad_storage`, `ad_user_data`, `ad_personalization` |
+| Floodlight | `ad_storage`, `ad_user_data`, `ad_personalization` |
+| Meta / Facebook Pixel (Custom HTML) | `ad_storage`, `ad_user_data`, `ad_personalization` |
+| LinkedIn Insight (Custom HTML) | `ad_storage`, `ad_user_data`, `ad_personalization` |
+| Personalisierung / A-B-Testing | `personalization_storage` |
+| Reine Session-/Sicherheits-Tags | `security_storage`, `functionality_storage` |
+
+Google-eigene Tags (GA4, Ads) prüfen die Signale zusätzlich intern über Consent Mode v2 — d. h. sie schalten bei `denied` in einen Ping-/Cookieless-Modus. Custom-HTML-Tags (Meta, LinkedIn, TikTok, …) prüfen **nichts von selbst** und müssen zwingend über „Require additional consent" gebunden werden.
+
+### 4) Zusätzliche Consent-Flags aktivieren (empfohlen)
+
+In den **Container-Einstellungen → Erweitert** aktivieren:
+
+- **URL Passthrough** — verhindert, dass Kampagnen-Parameter (`gclid`, `utm_*`) durch fehlende Cookies verloren gehen
+- **Ads Data Redaction** — schwärzt IP-Anteile und Klick-IDs bei fehlender Ad-Einwilligung
+
+Das Plugin sendet diese beiden Flags zusätzlich auf Wunsch schon vor dem GTM-Load an den `dataLayer`. Die Aktivierung im GTM-UI ist trotzdem empfohlen, damit die Einstellung auch für serverseitige GTM-Container gilt.
+
+### 5) Trigger für Custom-Events aus `trackEvent()`
+
+Das Plugin pusht bei `consent.trackEvent('cta_click', { label: 'Hero' }, { requires: 'analytics' })` folgendes Objekt in den `dataLayer`:
+
+```jsonc
+{ "event": "cta_click", "label": "Hero" }
+```
+
+In GTM einen Trigger vom Typ **Custom Event** mit **Event-Name = `cta_click`** anlegen und an das gewünschte Tag hängen. Die Payload-Felder (hier `label`) stehen als **Data-Layer-Variable** mit exakt diesem Namen zur Verfügung.
+
+### 6) Verifikation im GTM Preview-Modus
+
+1. In GTM auf **Preview** klicken → deine Domain öffnen → **Tag Assistant** verbindet sich.
+2. **Vor** jeder Nutzerentscheidung im Tag Assistant links auf den ersten Event-Eintrag klicken → Reiter **„Consent"**:
+   Alle Signale außer `security_storage` müssen auf **denied** stehen. Kein Analytics-/Ads-Tag darf gefeuert haben.
+3. Im Banner **„Alle akzeptieren"** klicken. Im Tag Assistant erscheint ein `consent update`-Event, alle Signale gehen auf **granted**, jetzt feuern GA4/Ads-Tags.
+4. **„Alle ablehnen"** testen: alle Signale bleiben `denied`, Google-Tags feuern im Cookieless-Modus (keine `_ga`-, `_gcl_*`-, `_fbp`-Cookies im **Application → Cookies**-Tab), Custom-HTML-Tags feuern gar nicht.
+5. `consent.reset()` in der Devtools-Konsole aufrufen → Banner erscheint erneut → Punkt 2 muss wieder gelten.
+
+### 7) Häufige Fehler
+
+- **GTM-Snippet doppelt eingebunden** (im `index.html` **und** über das Plugin) → Consent-Default kommt zu spät, weil das erste GTM schon geladen hat. Nur das Plugin einbinden.
+- **Consent Settings am Tag leergelassen** → Tag feuert trotz Ablehnung. Für jedes optionale Tag „Require additional consent" setzen.
+- **`gtmId` fehlt / falsch** → das Plugin loggt eine Warnung und setzt trotzdem den Consent-Default. Ohne gültige ID lädt GTM nie.
+- **`loadGtmOnlyAfterConsent: true` gewählt, aber GA4-Events werden vor Zustimmung erwartet** → in diesem Modus existiert kein `dataLayer`-Consumer, bis der Nutzer zustimmt. Für Cookieless-Pings **`loadGtmOnlyAfterConsent: false`** (Default) lassen.
+- **Custom-HTML-Tag ohne Consent-Bindung** (Meta/LinkedIn/TikTok) → feuert trotz Ablehnung. Consent Mode v2 schützt **nur** Google-Tags automatisch.
 
 ## DSGVO — was das Plugin technisch erzwingt
 
