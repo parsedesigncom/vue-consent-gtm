@@ -470,7 +470,89 @@ Das Plugin pusht bei `consent.trackEvent('cta_click', { label: 'Hero' }, { requi
 
 In GTM einen Trigger vom Typ **Custom Event** mit **Event-Name = `cta_click`** anlegen und an das gewünschte Tag hängen. Die Payload-Felder (hier `label`) stehen als **Data-Layer-Variable** mit exakt diesem Namen zur Verfügung.
 
-### 6) Verifikation im GTM Preview-Modus
+### 6) `cookie_consent_update`-Event (automatisch bei jeder Änderung)
+
+Bei **jeder Consent-Änderung** (Accept/Reject/Save/Reset) pusht das Plugin automatisch dieses Event in den `dataLayer` — ohne dass du im `onConsentChange`-Callback etwas tun musst:
+
+```jsonc
+{
+  "event": "cookie_consent_update",
+  "consent_reason": "update",             // "update" oder "reset"
+  "consent": {
+    "necessary": true,
+    "preferences": false,
+    "analytics": false,
+    "marketing": true
+  },
+  "consent_signals": {
+    "security_storage": "granted",
+    "functionality_storage": "granted",
+    "personalization_storage": "denied",
+    "analytics_storage": "denied",
+    "ad_storage": "granted",
+    "ad_user_data": "granted",
+    "ad_personalization": "granted"
+  }
+}
+```
+
+Damit kannst du in GTM:
+- **Trigger** auf `cookie_consent_update` legen und pro Kategorie oder Signal filtern
+- **Data-Layer-Variablen** mit Dot-Notation lesen: `consent.marketing`, `consent_signals.ad_storage`, `consent_reason`
+- Custom-HTML-Pixel (Meta, LinkedIn, TikTok) live auf Änderungen reagieren lassen — ohne Reload
+
+#### Anwendungsfall: Meta Pixel live revoken/granten (ohne Reload)
+
+Meta Pixel bleibt nach dem ersten Laden im Browser-Speicher — Consent Settings blockieren nur **neue** Firings, entfernen aber nicht den bereits geladenen Pixel. Über das `cookie_consent_update`-Event lässt sich der Pixel **live** stoppen bzw. wieder aktivieren:
+
+**Data Layer Variable anlegen:**
+- Name: `dlv_consent_marketing`
+- Data Layer Variable Name: `consent.marketing`
+
+**Zwei Trigger anlegen (beide vom Typ Custom Event):**
+
+| Trigger-Name | Event Name | Filter |
+|---|---|---|
+| CE — Marketing Granted | `cookie_consent_update` | `dlv_consent_marketing` **equals** `true` |
+| CE — Marketing Revoked | `cookie_consent_update` | `dlv_consent_marketing` **equals** `false` |
+
+**Zwei Custom-HTML-Tags anlegen** (beide **ohne** Consent Settings — sonst blockieren sie sich selbst):
+
+*Tag „Meta Pixel — Grant":*
+```html
+<script>
+  if (typeof fbq === 'function') fbq('consent', 'grant');
+</script>
+```
+Trigger: `CE — Marketing Granted`
+
+*Tag „Meta Pixel — Revoke":*
+```html
+<script>
+(function() {
+  if (typeof fbq === 'function') fbq('consent', 'revoke');
+
+  var cookieNames = ['_fbp', '_fbc'];
+  var host = window.location.hostname;
+  var parts = host.split('.');
+  var domains = [host, '.' + host];
+  for (var i = 1; i < parts.length - 1; i++) {
+    domains.push('.' + parts.slice(i).join('.'));
+  }
+  cookieNames.forEach(function(name) {
+    domains.forEach(function(d) {
+      document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=' + d;
+    });
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  });
+})();
+</script>
+```
+Trigger: `CE — Marketing Revoked`
+
+Am **bestehenden Meta-Pixel-Base-Tag** den `cookie_consent_update`-Trigger durch **`CE — Marketing Granted`** ersetzen, damit der Base-Tag nur bei tatsächlichem Grant re-feuert und nicht bei jedem Deny-Klick unnötig getriggert wird.
+
+### 7) Verifikation im GTM Preview-Modus
 
 1. In GTM auf **Preview** klicken → deine Domain öffnen → **Tag Assistant** verbindet sich.
 2. **Vor** jeder Nutzerentscheidung im Tag Assistant links auf den ersten Event-Eintrag klicken → Reiter **„Consent"**:
@@ -479,7 +561,7 @@ In GTM einen Trigger vom Typ **Custom Event** mit **Event-Name = `cta_click`** a
 4. **„Alle ablehnen"** testen: alle Signale bleiben `denied`, Google-Tags feuern im Cookieless-Modus (keine `_ga`-, `_gcl_*`-, `_fbp`-Cookies im **Application → Cookies**-Tab), Custom-HTML-Tags feuern gar nicht.
 5. `consent.reset()` in der Devtools-Konsole aufrufen → Banner erscheint erneut → Punkt 2 muss wieder gelten.
 
-### 7) Häufige Fehler
+### 8) Häufige Fehler
 
 - **GTM-Snippet doppelt eingebunden** (im `index.html` **und** über das Plugin) → Consent-Default kommt zu spät, weil das erste GTM schon geladen hat. Nur das Plugin einbinden.
 - **Consent Settings am Tag leergelassen** → Tag feuert trotz Ablehnung. Für jedes optionale Tag „Require additional consent" setzen.

@@ -1,7 +1,7 @@
 import { h, createApp, reactive } from 'vue'
 import { normalizeOptions } from './config.js'
 import { createStore } from './store.js'
-import { setConsentDefault, updateConsent, loadGtm, pushToDataLayer } from './gtm.js'
+import { setConsentDefault, updateConsent, loadGtm, pushToDataLayer, pushConsentUpdateEvent } from './gtm.js'
 import { resolveLocale, pickLocalized, getTextsForLocale, SUPPORTED_LOCALES } from './i18n.js'
 import CookieBanner from './components/CookieBanner.vue'
 import FloatingConsentButton from './components/FloatingConsentButton.vue'
@@ -44,6 +44,7 @@ export function createConsentManager(userOptions) {
         loadGtm(options.gtmId)
       }
     }
+    pushConsentUpdateEvent(store._internalState.choices, options.categories, 'update')
     notifyChange()
   }
 
@@ -86,6 +87,8 @@ export function createConsentManager(userOptions) {
     reset() {
       store.reset()
       ui.showSettings = false
+      updateConsent(store._internalState.choices, options)
+      pushConsentUpdateEvent(store._internalState.choices, options.categories, 'reset')
       notifyChange()
     },
 

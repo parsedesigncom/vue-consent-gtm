@@ -72,6 +72,21 @@ export function updateConsent(choices, options) {
   gtag('consent', 'update', signals)
 }
 
+export function pushConsentUpdateEvent(choices, categories, reason) {
+  if (!isBrowser) return
+  const signals = signalsFromChoices(choices, categories)
+  const consent = {}
+  for (const key of Object.keys(choices)) {
+    consent[key] = !!choices[key]
+  }
+  pushToDataLayer({
+    event: 'cookie_consent_update',
+    consent_reason: reason,
+    consent,
+    consent_signals: signals
+  })
+}
+
 export function loadGtm(gtmId) {
   if (!isBrowser || !gtmId || gtmScriptInjected) return
   if (document.querySelector(`script[data-gtm-id="${gtmId}"]`)) {
