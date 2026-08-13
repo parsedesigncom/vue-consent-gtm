@@ -164,6 +164,182 @@ function onCta() {
 
 In Options-API / Templates auch als `$consent` verfügbar.
 
+## Custom Events tracken (`trackEvent`)
+
+Statt in GTM per Klasse / Selektor auf Klicks zu horchen (fragil, bricht bei jedem CSS-Refactor), kannst du Events direkt aus deinem Vue-Code an den `dataLayer` schicken. Das Plugin gated dabei automatisch nach Consent-Kategorie — bei fehlender Zustimmung fließt nichts.
+
+### Grundprinzip
+
+```js
+consent.trackEvent(eventName, params, { requires: 'analytics' })
+```
+
+Was passiert:
+1. Prüft `consent.hasConsent('analytics')`
+2. Wenn `true` → `dataLayer.push({ event: eventName, ...params })`
+3. Wenn `false` → nichts, gibt `false` zurück
+
+### Einfaches Beispiel — Button-Klick
+
+```vue
+<script setup>
+import { useConsent } from 'vue-consent-gtm'
+const consent = useConsent()
+
+function onCtaClick() {
+  consent.trackEvent('cta_click', {
+    button_label: 'Jetzt kaufen',
+    location: 'hero'
+  }, { requires: 'analytics' })
+}
+</script>
+
+<template>
+  <button @click="onCtaClick">Jetzt kaufen</button>
+</template>
+```
+
+### `requires`-Parameter — Consent-Gate pro Event
+
+| Wert | Wann Event feuert |
+|---|---|
+| `{ requires: 'analytics' }` | Nur bei Analytics-Consent |
+| `{ requires: 'marketing' }` | Nur bei Marketing-Consent |
+| *(weglassen)* | Immer — für rein funktionale Events |
+
+Faustregel: Nutzungsstatistik = `analytics`, Conversion-Tracking für Ads = `marketing`.
+
+### Praktische Muster
+
+**Section-View via IntersectionObserver:**
+
+```vue
+<script setup>
+import { onMounted, ref } from 'vue'
+import { useConsent } from 'vue-consent-gtm'
+const consent = useConsent()
+const section = ref(null)
+
+onMounted(() => {
+  const io = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      consent.trackEvent('section_view', {
+        section_name: 'testimonials',
+        section_position: 3
+      }, { requires: 'analytics' })
+      io.disconnect()
+    }
+  }, { threshold: 0.5 })
+  io.observe(section.value)
+})
+</script>
+
+<template><section ref="section">…</section></template>
+```
+
+**Verweildauer pro Route (Composable):**
+
+```js
+// composables/usePageTiming.js
+import { onMounted, onUnmounted } from 'vue'
+import { useConsent } from 'vue-consent-gtm'
+import { useRoute } from 'vue-router'
+
+export function usePageTiming() {
+  const consent = useConsent()
+  const route = useRoute()
+  let enteredAt = 0
+  onMounted(() => { enteredAt = Date.now() })
+  onUnmounted(() => {
+    consent.trackEvent('page_dwell', {
+      page_path: route.fullPath,
+      dwell_ms: Date.now() - enteredAt
+    }, { requires: 'analytics' })
+  })
+}
+```
+
+**Checkout-Schritte:**
+
+```js
+consent.trackEvent('checkout_step', {
+  step: 1,
+  step_name: 'address',
+  cart_value: 89.90,
+  currency: 'EUR'
+}, { requires: 'marketing' })
+```
+
+**Externe Links:**
+
+```vue
+<a href="https://partner.de"
+   @click="consent.trackEvent('outbound_click', { outbound_url: 'https://partner.de' }, { requires: 'analytics' })">
+  Partner
+</a>
+```
+
+### GTM-Seite — pro Event einmalig anlegen
+
+**1. Für jeden Event-Parameter → Datenschichtvariable:**
+- Variable-Typ: **Datenschichtvariable** (Data Layer Variable)
+- Name der Datenschichtvariablen: exakt der Parameter-Name aus dem Code (`button_label`, `section_name`, `step`, …)
+- GTM-Variablenname: konventionell `dlv_button_label`
+
+**2. Für den Event-Namen → Custom Event Trigger:**
+- Trigger-Typ: **Custom Event**
+- Event name: exakt dein Event-Name (`cta_click`)
+- Fires on: **All Custom Events** (oder mit Filter)
+
+**3. Tag (z. B. GA4 Event) an den Trigger hängen:**
+- Event Name: `cta_click`
+- Event Parameters: `button_label = {{dlv_button_label}}`, `location = {{dlv_location}}`
+
+### Naming-Konventionen
+
+Damit GA4 nicht im Chaos versinkt:
+
+| Regel | Gut | Schlecht |
+|---|---|---|
+| snake_case | `cta_click` | `CTA Click` |
+| Verb + Objekt | `video_play` | `videoStarted` |
+| Konsistente Prefixes | `cta_click`, `cta_hover`, `cta_view` | wild gemischt |
+| GA4-Standard-Events nutzen | `select_content`, `login`, `sign_up`, `purchase` | eigene Namen |
+| Parameter statt vieler Events | `cta_click` + `variant: 'A'` | `cta_click_variant_A` |
+
+GA4 hat eine [Liste empfohlener Event-Namen](https://support.google.com/analytics/answer/9267735) — verwendet man die, werden GA4-Standardberichte automatisch befüllt.
+
+### Rohen `push()` verwenden
+
+Für komplexe Payloads (z. B. GA4 Enhanced Ecommerce mit `ecommerce`-Objekt) kannst du direkt auf den dataLayer pushen — dann aber **selbst Consent prüfen**:
+
+```js
+if (consent.hasConsent('marketing')) {
+  consent.push({
+    event: 'purchase',
+    ecommerce: {
+      transaction_id: 'T-12345',
+      value: 89.90,
+      currency: 'EUR',
+      items: [
+        { item_id: 'SKU-1', item_name: 'Widget', price: 89.90, quantity: 1 }
+      ]
+    }
+  })
+}
+```
+
+`push()` hat kein `requires`-Argument, weil verschachtelte Objekte (`ecommerce`, `user_properties` etc.) sich nicht sinnvoll flach als Event-Params darstellen lassen. Für alles andere ist `trackEvent()` einfacher und sicherer.
+
+### Debugging
+
+```js
+// Alle eigenen Events sehen (ohne GTM-Interna)
+window.dataLayer.filter(e => e.event && !e.event.startsWith('gtm.'))
+```
+
+Im **Tag Assistant** links in der Event-Liste taucht jedes `trackEvent()` als eigener Eintrag auf → draufklicken → Tab „Data Layer" zeigt alle Parameter.
+
 ## Konfiguration
 
 | Option | Typ | Default | Beschreibung |
