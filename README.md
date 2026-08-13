@@ -1,15 +1,15 @@
 # vue-consent-gtm
 
-Ein wiederverwendbares, **DSGVO-konformes Cookie-Consent-Plugin für Vue 3** mit nativer Anbindung an den **Google Tag Manager (Consent Mode v2)**.
+A reusable, **GDPR-compliant cookie consent plugin for Vue 3** with native integration into **Google Tag Manager (Consent Mode v2)**.
 
-- Kein Server-Backend, kein externer Consent-Dienst
-- Trennung von Logik und UI — eigene Banner-Komponente möglich
-- Consent Mode v2 Default `denied`, Update erst nach Nutzerentscheidung
-- Granulare Kategorien, Versionierung, Ablauf, Widerruf
-- **i18n out-of-the-box** (DE + EN) mit Browser-Detection
-- **Floating Cookie-Button** für den Widerruf auf jeder Seite
-- **Farben aus dem Config** anpassbar (Fallback auf sinnvolle Defaults)
-- Feste Schriftart **Arial** — keine Font-Konflikte mit der Host-App
+- No server backend, no external consent service
+- Separation of logic and UI — bring your own banner component
+- Consent Mode v2 default `denied`, updated only after user decision
+- Granular categories, versioning, expiry, revocation
+- **i18n out-of-the-box** (DE + EN) with browser detection
+- **Floating cookie button** for revocation on every page
+- **Colors configurable via config** (falls back to sensible defaults)
+- Fixed **Arial** font — no font conflicts with the host app
 
 ---
 
@@ -19,9 +19,9 @@ Ein wiederverwendbares, **DSGVO-konformes Cookie-Consent-Plugin für Vue 3** mit
 npm install vue-consent-gtm
 ```
 
-## Einbindung
+## Setup
 
-### Minimal — nur GTM-ID
+### Minimal — just the GTM ID
 
 ```js
 import { createApp } from 'vue'
@@ -34,9 +34,9 @@ app.use(VueConsentGtm, { gtmId: 'GTM-XXXXXXX' })
 app.mount('#app')
 ```
 
-Damit ist alles aktiv: Banner, Browser-Sprachendetection (DE/EN), Consent Mode v2 default `denied`, Floating-Button für den Widerruf nach der ersten Entscheidung.
+That's all: banner, browser language detection (DE/EN), Consent Mode v2 default `denied`, floating button for revocation after the first decision.
 
-### Komplettes Beispiel mit allen Optionen
+### Full example with all options
 
 ```js
 app.use(VueConsentGtm, {
@@ -45,11 +45,11 @@ app.use(VueConsentGtm, {
   expiryDays: 182,
   loadGtmOnlyAfterConsent: false,
 
-  // Sprache
+  // Language
   locale: 'auto',              // 'auto' | 'de' | 'en'
   fallbackLocale: 'en',
 
-  // Text-Overrides pro Sprache (optional)
+  // Text overrides per language (optional)
   texts: {
     de: {
       title: 'Cookies bei Merci-Snacks',
@@ -63,13 +63,13 @@ app.use(VueConsentGtm, {
     }
   },
 
-  // Widerruf-Button (Cookie-Icon)
+  // Revocation button (cookie icon)
   floatingButton: {
     enabled: true,
     position: 'bottom-left'    // 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
   },
 
-  // Farben & Optik (alles optional, fällt auf Defaults zurück)
+  // Colors & appearance (all optional, falls back to defaults)
   theme: {
     primary: '#e11d48',
     radius: '14px'
@@ -81,18 +81,18 @@ app.use(VueConsentGtm, {
 })
 ```
 
-Der Banner erscheint automatisch, wenn noch keine Entscheidung getroffen wurde. Nach der Entscheidung erscheint der Cookie-Button an der konfigurierten Position.
+The banner appears automatically if no decision has been made yet. After the decision, the cookie button appears at the configured position.
 
-## Config-Quelle wählen
+## Config source
 
-Das Plugin erwartet nur ein Objekt in `app.use(...)`. Woher die Werte kommen, bleibt dir überlassen. Vier gängige Muster:
+The plugin only expects an object in `app.use(...)`. Where the values come from is up to you. Four common patterns:
 
-**A) Hardcoded** — einfachster Fall, eine Umgebung:
+**A) Hardcoded** — simplest case, one environment:
 ```js
 app.use(VueConsentGtm, { gtmId: 'GTM-XXXXXXX' })
 ```
 
-**B) Eigene Config-Datei** — sauber trennen, keine Build-Tool-Magie:
+**B) Dedicated config file** — clean separation, no build-tool magic:
 ```js
 // src/config/consent.js
 export const consentConfig = { gtmId: 'GTM-XXXXXXX' }
@@ -102,7 +102,7 @@ import { consentConfig } from './config/consent.js'
 app.use(VueConsentGtm, consentConfig)
 ```
 
-**C) `.env` via Vite / Nuxt / Vue-CLI** — Standard bei Multi-Environment:
+**C) `.env` via Vite / Nuxt / Vue-CLI** — standard for multi-environment:
 ```env
 # .env
 VITE_GTM_ID=GTM-XXXXXXX
@@ -111,7 +111,7 @@ VITE_GTM_ID=GTM-XXXXXXX
 app.use(VueConsentGtm, { gtmId: import.meta.env.VITE_GTM_ID })
 ```
 
-**D) Runtime-Config aus Meta-Tag oder JSON** — für CMS-getriebene Sites oder ein-Build-für-alle-Umgebungen:
+**D) Runtime config from meta tag or JSON** — for CMS-driven sites or one-build-per-all-environments:
 ```html
 <meta name="gtm-id" content="GTM-XXXXXXX">
 ```
@@ -139,47 +139,47 @@ function onCta() {
 </template>
 ```
 
-> Tipp: `openSettings()` öffnet nur den Einstellungs-Dialog (Nutzer kann Auswahl ändern). `reset()` löscht die gespeicherte Einwilligung komplett — der Banner erscheint danach wieder wie beim ersten Besuch.
+> Tip: `openSettings()` only opens the settings dialog (user can change their selection). `reset()` deletes the stored consent completely — the banner then appears again as on the first visit.
 
-### Manager-API
+### Manager API
 
-| Methode / Property | Beschreibung |
+| Method / property | Description |
 |---|---|
-| `hasConsent(key)` | Prüft, ob für die Kategorie eingewilligt wurde |
-| `isDecided()` | Wurde bereits eine Entscheidung getroffen? |
-| `acceptAll()` | Alle Kategorien annehmen |
-| `rejectAll()` | Alle optionalen ablehnen |
-| `save(choices)` | Individuelle Auswahl speichern |
-| `reset()` | Einwilligung löschen (Banner erscheint erneut) |
-| `trackEvent(event, params, { requires })` | Pusht nur bei entsprechender Zustimmung |
-| `push(obj)` | Direkter `dataLayer.push` |
-| `locale` | Aktive Sprache (`'de'` oder `'en'`), reaktiv |
-| `texts` | Aufgelöste Texte für die aktive Sprache |
-| `supportedLocales` | Liste der eingebauten Sprachen |
-| `setLocale(loc)` | Sprache setzen (`'de'`, `'en'` oder `'auto'` für Browser-Detection) |
-| `localize(value)` | Löst einen `{ de, en }`-Wert für die aktive Sprache auf |
-| `openSettings()` | Einstellungs-Dialog öffnen (auch nach erteilter Zustimmung) — für Widerruf |
-| `closeSettings()` | Einstellungs-Dialog schließen |
-| `showSettings` | Ist der Einstellungs-Dialog gerade offen? (reaktiv) |
+| `hasConsent(key)` | Checks whether the category has been consented to |
+| `isDecided()` | Has a decision already been made? |
+| `acceptAll()` | Accept all categories |
+| `rejectAll()` | Reject all optional categories |
+| `save(choices)` | Save an individual selection |
+| `reset()` | Delete consent (banner appears again) |
+| `trackEvent(event, params, { requires })` | Pushes only with the corresponding consent |
+| `push(obj)` | Direct `dataLayer.push` |
+| `locale` | Active language (`'de'` or `'en'`), reactive |
+| `texts` | Resolved texts for the active language |
+| `supportedLocales` | List of built-in languages |
+| `setLocale(loc)` | Set language (`'de'`, `'en'` or `'auto'` for browser detection) |
+| `localize(value)` | Resolves a `{ de, en }` value for the active language |
+| `openSettings()` | Open the settings dialog (also after consent was given) — for revocation |
+| `closeSettings()` | Close the settings dialog |
+| `showSettings` | Is the settings dialog currently open? (reactive) |
 
-In Options-API / Templates auch als `$consent` verfügbar.
+Also available as `$consent` in the Options API / templates.
 
-## Custom Events tracken (`trackEvent`)
+## Tracking custom events (`trackEvent`)
 
-Statt in GTM per Klasse / Selektor auf Klicks zu horchen (fragil, bricht bei jedem CSS-Refactor), kannst du Events direkt aus deinem Vue-Code an den `dataLayer` schicken. Das Plugin gated dabei automatisch nach Consent-Kategorie — bei fehlender Zustimmung fließt nichts.
+Instead of listening for clicks in GTM by class / selector (fragile, breaks on every CSS refactor), you can send events directly from your Vue code to the `dataLayer`. The plugin automatically gates them by consent category — if consent is missing, nothing flows.
 
-### Grundprinzip
+### Basic principle
 
 ```js
 consent.trackEvent(eventName, params, { requires: 'analytics' })
 ```
 
-Was passiert:
-1. Prüft `consent.hasConsent('analytics')`
-2. Wenn `true` → `dataLayer.push({ event: eventName, ...params })`
-3. Wenn `false` → nichts, gibt `false` zurück
+What happens:
+1. Checks `consent.hasConsent('analytics')`
+2. If `true` → `dataLayer.push({ event: eventName, ...params })`
+3. If `false` → nothing, returns `false`
 
-### Einfaches Beispiel — Button-Klick
+### Simple example — button click
 
 ```vue
 <script setup>
@@ -188,30 +188,30 @@ const consent = useConsent()
 
 function onCtaClick() {
   consent.trackEvent('cta_click', {
-    button_label: 'Jetzt kaufen',
+    button_label: 'Buy now',
     location: 'hero'
   }, { requires: 'analytics' })
 }
 </script>
 
 <template>
-  <button @click="onCtaClick">Jetzt kaufen</button>
+  <button @click="onCtaClick">Buy now</button>
 </template>
 ```
 
-### `requires`-Parameter — Consent-Gate pro Event
+### The `requires` parameter — per-event consent gate
 
-| Wert | Wann Event feuert |
+| Value | When event fires |
 |---|---|
-| `{ requires: 'analytics' }` | Nur bei Analytics-Consent |
-| `{ requires: 'marketing' }` | Nur bei Marketing-Consent |
-| *(weglassen)* | Immer — für rein funktionale Events |
+| `{ requires: 'analytics' }` | Only with analytics consent |
+| `{ requires: 'marketing' }` | Only with marketing consent |
+| *(omitted)* | Always — for purely functional events |
 
-Faustregel: Nutzungsstatistik = `analytics`, Conversion-Tracking für Ads = `marketing`.
+Rule of thumb: usage statistics = `analytics`, conversion tracking for ads = `marketing`.
 
-### Praktische Muster
+### Practical patterns
 
-**Section-View via IntersectionObserver:**
+**Section view via IntersectionObserver:**
 
 ```vue
 <script setup>
@@ -237,7 +237,7 @@ onMounted(() => {
 <template><section ref="section">…</section></template>
 ```
 
-**Verweildauer pro Route (Composable):**
+**Dwell time per route (composable):**
 
 ```js
 // composables/usePageTiming.js
@@ -259,7 +259,7 @@ export function usePageTiming() {
 }
 ```
 
-**Checkout-Schritte:**
+**Checkout steps:**
 
 ```js
 consent.trackEvent('checkout_step', {
@@ -270,48 +270,48 @@ consent.trackEvent('checkout_step', {
 }, { requires: 'marketing' })
 ```
 
-**Externe Links:**
+**External links:**
 
 ```vue
-<a href="https://partner.de"
-   @click="consent.trackEvent('outbound_click', { outbound_url: 'https://partner.de' }, { requires: 'analytics' })">
+<a href="https://partner.com"
+   @click="consent.trackEvent('outbound_click', { outbound_url: 'https://partner.com' }, { requires: 'analytics' })">
   Partner
 </a>
 ```
 
-### GTM-Seite — pro Event einmalig anlegen
+### GTM side — set up once per event
 
-**1. Für jeden Event-Parameter → Datenschichtvariable:**
-- Variable-Typ: **Datenschichtvariable** (Data Layer Variable)
-- Name der Datenschichtvariablen: exakt der Parameter-Name aus dem Code (`button_label`, `section_name`, `step`, …)
-- GTM-Variablenname: konventionell `dlv_button_label`
+**1. For each event parameter → Data Layer Variable:**
+- Variable type: **Data Layer Variable**
+- Data Layer Variable Name: the exact parameter name from your code (`button_label`, `section_name`, `step`, …)
+- GTM variable name: conventionally `dlv_button_label`
 
-**2. Für den Event-Namen → Custom Event Trigger:**
-- Trigger-Typ: **Custom Event**
-- Event name: exakt dein Event-Name (`cta_click`)
-- Fires on: **All Custom Events** (oder mit Filter)
+**2. For the event name → Custom Event trigger:**
+- Trigger type: **Custom Event**
+- Event name: exact match of your event name (`cta_click`)
+- Fires on: **All Custom Events** (or with a filter)
 
-**3. Tag (z. B. GA4 Event) an den Trigger hängen:**
+**3. Hook a tag (e.g. GA4 Event) to the trigger:**
 - Event Name: `cta_click`
 - Event Parameters: `button_label = {{dlv_button_label}}`, `location = {{dlv_location}}`
 
-### Naming-Konventionen
+### Naming conventions
 
-Damit GA4 nicht im Chaos versinkt:
+To keep GA4 from turning into chaos:
 
-| Regel | Gut | Schlecht |
+| Rule | Good | Bad |
 |---|---|---|
 | snake_case | `cta_click` | `CTA Click` |
-| Verb + Objekt | `video_play` | `videoStarted` |
-| Konsistente Prefixes | `cta_click`, `cta_hover`, `cta_view` | wild gemischt |
-| GA4-Standard-Events nutzen | `select_content`, `login`, `sign_up`, `purchase` | eigene Namen |
-| Parameter statt vieler Events | `cta_click` + `variant: 'A'` | `cta_click_variant_A` |
+| Verb + object | `video_play` | `videoStarted` |
+| Consistent prefixes | `cta_click`, `cta_hover`, `cta_view` | wildly mixed |
+| Use GA4 standard events | `select_content`, `login`, `sign_up`, `purchase` | custom names |
+| Parameters over many events | `cta_click` + `variant: 'A'` | `cta_click_variant_A` |
 
-GA4 hat eine [Liste empfohlener Event-Namen](https://support.google.com/analytics/answer/9267735) — verwendet man die, werden GA4-Standardberichte automatisch befüllt.
+GA4 provides a [list of recommended event names](https://support.google.com/analytics/answer/9267735) — using them causes GA4's standard reports to be populated automatically.
 
-### Rohen `push()` verwenden
+### Using raw `push()`
 
-Für komplexe Payloads (z. B. GA4 Enhanced Ecommerce mit `ecommerce`-Objekt) kannst du direkt auf den dataLayer pushen — dann aber **selbst Consent prüfen**:
+For complex payloads (e.g. GA4 Enhanced Ecommerce with an `ecommerce` object), you can push directly to the dataLayer — but you have to **check consent yourself**:
 
 ```js
 if (consent.hasConsent('marketing')) {
@@ -329,48 +329,48 @@ if (consent.hasConsent('marketing')) {
 }
 ```
 
-`push()` hat kein `requires`-Argument, weil verschachtelte Objekte (`ecommerce`, `user_properties` etc.) sich nicht sinnvoll flach als Event-Params darstellen lassen. Für alles andere ist `trackEvent()` einfacher und sicherer.
+`push()` has no `requires` argument because nested objects (`ecommerce`, `user_properties`, etc.) don't sensibly flatten into event params. For everything else, `trackEvent()` is simpler and safer.
 
 ### Debugging
 
 ```js
-// Alle eigenen Events sehen (ohne GTM-Interna)
+// See all your own events (without GTM internals)
 window.dataLayer.filter(e => e.event && !e.event.startsWith('gtm.'))
 ```
 
-Im **Tag Assistant** links in der Event-Liste taucht jedes `trackEvent()` als eigener Eintrag auf → draufklicken → Tab „Data Layer" zeigt alle Parameter.
+In the **Tag Assistant**, each `trackEvent()` appears as its own entry in the left-hand event list → click it → the "Data Layer" tab shows all parameters.
 
-## Konfiguration
+## Configuration
 
-| Option | Typ | Default | Beschreibung |
+| Option | Type | Default | Description |
 |---|---|---|---|
-| `gtmId` | `string` | — | **Pflicht.** GTM-Container-ID |
-| `consentVersion` | `number` | `1` | Erhöhen invalidiert gespeicherte Einwilligung |
-| `expiryDays` | `number` | `182` | Gültigkeitsdauer der Zustimmung |
-| `categories` | `object` | Standard | Kategorien-Definition mit lokalisierten Labels |
-| `loadGtmOnlyAfterConsent` | `boolean` | `false` | Strengste Auslegung: GTM erst nach Zustimmung laden |
-| `locale` | `'auto' \| 'de' \| 'en'` | `'auto'` | Startsprache. `'auto'` erkennt Browser-Sprache |
-| `fallbackLocale` | `'de' \| 'en'` | `'en'` | Sprache wenn Browser-Detection nicht greift |
-| `texts` | `object` | — | Text-Overrides pro Sprache: `{ de: {...}, en: {...} }` |
-| `floatingButton` | `object` | `{ enabled: true, position: 'bottom-left' }` | Schwebender Cookie-Button für Widerruf. `position`: `'bottom-left' \| 'bottom-right' \| 'top-left' \| 'top-right'` |
-| `theme` | `object` | — | Farben und Optik (siehe [Theme](#theme-farben--optik)). Alles optional, jeder Key hat einen Default |
-| `onConsentChange` | `function` | — | Callback bei jeder Änderung |
+| `gtmId` | `string` | — | **Required.** GTM container ID |
+| `consentVersion` | `number` | `1` | Incrementing invalidates stored consent |
+| `expiryDays` | `number` | `182` | Consent validity duration |
+| `categories` | `object` | Default | Category definition with localized labels |
+| `loadGtmOnlyAfterConsent` | `boolean` | `false` | Strictest reading: load GTM only after consent |
+| `locale` | `'auto' \| 'de' \| 'en'` | `'auto'` | Initial language. `'auto'` detects browser language |
+| `fallbackLocale` | `'de' \| 'en'` | `'en'` | Language when browser detection doesn't apply |
+| `texts` | `object` | — | Text overrides per language: `{ de: {...}, en: {...} }` |
+| `floatingButton` | `object` | `{ enabled: true, position: 'bottom-left' }` | Floating cookie button for revocation. `position`: `'bottom-left' \| 'bottom-right' \| 'top-left' \| 'top-right'` |
+| `theme` | `object` | — | Colors and appearance (see [Theme](#theme-colors--appearance)). All optional, each key has a default |
+| `onConsentChange` | `function` | — | Callback on every change |
 
-## Mehrsprachigkeit (i18n)
+## Internationalization (i18n)
 
-Das Plugin liefert DE und EN out-of-the-box. Die Sprache wird automatisch anhand des Browsers erkannt: startet `navigator.language` mit `de` → Deutsch, sonst Englisch (bzw. der eingestellte `fallbackLocale`).
+The plugin ships with DE and EN out-of-the-box. The language is detected automatically from the browser: if `navigator.language` starts with `de` → German, otherwise English (or the configured `fallbackLocale`).
 
-**Feste Sprache:**
+**Fixed language:**
 ```js
 app.use(VueConsentGtm, { gtmId: '…', locale: 'de' })
 ```
 
-**Automatische Erkennung mit Fallback:**
+**Automatic detection with fallback:**
 ```js
 app.use(VueConsentGtm, { gtmId: '…', locale: 'auto', fallbackLocale: 'en' })
 ```
 
-**Einzelne Texte überschreiben — pro Sprache:**
+**Override individual texts — per language:**
 ```js
 app.use(VueConsentGtm, {
   gtmId: '…',
@@ -389,12 +389,12 @@ app.use(VueConsentGtm, {
 })
 ```
 
-Alle nicht überschriebenen Keys fallen auf die Default-Texte zurück.
+Any keys you don't override fall back to the default texts.
 
-**Verfügbare Text-Keys** (pro Sprache identisch):
+**Available text keys** (identical per language):
 `title`, `body`, `acceptAll`, `rejectAll`, `settings`, `save`, `close`, `required`, `cookieSettings`, `policyLinkLabel`, `policyLinkHref`
 
-**Eigene Kategorie-Labels lokalisieren:**
+**Localize your own category labels:**
 ```js
 categories: {
   necessary: { /* … */ },
@@ -410,35 +410,35 @@ categories: {
 }
 ```
 
-**Runtime-Sprachwechsel** (z. B. wenn deine App einen eigenen Sprach-Switcher hat):
+**Runtime language switch** (e.g. when your app has its own language switcher):
 ```js
 const consent = useConsent()
-consent.setLocale('en')       // sofort Englisch
-consent.setLocale('auto')     // zurück zur Browser-Erkennung
+consent.setLocale('en')       // English immediately
+consent.setLocale('auto')     // back to browser detection
 ```
 
-## Theme (Farben & Optik)
+## Theme (colors & appearance)
 
-Über die `theme`-Option lassen sich Farben, Radien, Schatten und die Größe/Position des Floating Buttons direkt aus dem Config setzen — ohne globales CSS. Alles ist optional; wird ein Key nicht gesetzt, greifen die eingebauten Defaults.
+The `theme` option lets you set colors, radii, shadows and the size/position of the floating button directly from the config — no global CSS needed. Everything is optional; if a key is not set, the built-in defaults apply.
 
 ```js
 app.use(VueConsentGtm, {
   gtmId: '…',
   theme: {
-    primary: '#e11d48',           // Buttons „Akzeptieren", Fokusring
-    primaryContrast: '#ffffff',   // Text auf Primary
-    bg: '#ffffff',                // Panel-Hintergrund
+    primary: '#e11d48',           // "Accept" buttons, focus ring
+    primaryContrast: '#ffffff',   // Text on primary
+    bg: '#ffffff',                // Panel background
     text: '#111827',              // Text
-    muted: '#6b7280',             // Beschreibungstext, sekundäre Infos
-    border: '#e5e7eb',            // Rahmen
-    secondaryBg: '#f2f4f7',       // „Ablehnen" / „Speichern"-Buttons
+    muted: '#6b7280',             // Description text, secondary info
+    border: '#e5e7eb',            // Borders
+    secondaryBg: '#f2f4f7',       // "Reject" / "Save" buttons
     secondaryText: '#111827',
-    radius: '14px',               // Panel- und Button-Radius
+    radius: '14px',               // Panel and button radius
     shadow: '0 12px 32px rgba(0,0,0,0.18)',
-    maxWidth: '640px',            // Panel-Breite
+    maxWidth: '640px',            // Panel width
     backdrop: 'rgba(0,0,0,0.35)', // Overlay
 
-    // Floating Cookie-Button
+    // Floating cookie button
     fabSize: '44px',
     fabBg: '#ffffff',
     fabColor: '#111827',
@@ -450,12 +450,12 @@ app.use(VueConsentGtm, {
 })
 ```
 
-**Beispiel — nur die Primary-Farbe der Marke setzen:**
+**Example — set only the brand primary color:**
 ```js
 theme: { primary: '#e11d48' }
 ```
 
-**Beispiel — Dark-Mode:**
+**Example — dark mode:**
 ```js
 theme: {
   bg: '#1a1a1a',
@@ -470,27 +470,27 @@ theme: {
 }
 ```
 
-> Font ist fest auf **Arial** — bewusst, damit das Banner in jeder Host-App identisch aussieht und keine Font-Konflikte auftreten. Wenn du eigene Fonts brauchst, ersetze die Standard-Komponente (siehe „Eigene UI" unten).
+> Font is hardcoded to **Arial** — deliberately, so the banner looks identical in every host app and no font conflicts occur. If you need your own fonts, replace the default component (see "Bring your own UI" below).
 
-`theme` schreibt die Werte als **Inline-CSS-Variablen** auf die Komponente. Wenn du sie zusätzlich per CSS (z. B. Media-Query fürs Dark-Mode) übersteuern willst, brauchst du `!important` oder eine höhere Selektor-Spezifität — oder du setzt einfach nur eines von beiden.
+`theme` writes the values as **inline CSS variables** on the component. If you also want to override them via CSS (e.g. a media query for dark mode), you'll need `!important` or higher selector specificity — or you can just set one or the other.
 
-## Standard-Kategorien
+## Default categories
 
-| Kategorie | Consent-Signale (v2) |
+| Category | Consent signals (v2) |
 |---|---|
-| `necessary` (immer aktiv) | `security_storage`, `functionality_storage` |
+| `necessary` (always active) | `security_storage`, `functionality_storage` |
 | `preferences` | `functionality_storage`, `personalization_storage` |
 | `analytics` | `analytics_storage` |
 | `marketing` | `ad_storage`, `ad_user_data`, `ad_personalization` |
 
-Bei Kollision zwischen Kategorien gilt: **granted gewinnt**.
+On collision between categories: **granted wins**.
 
-## Widerruf & Einstellungen erneut öffnen
+## Revocation & reopening settings
 
-DSGVO verlangt, dass der Widerruf **so einfach ist wie die Erteilung**. Das Plugin bietet dafür zwei Wege:
+GDPR requires that revocation is **as easy as granting**. The plugin offers two ways:
 
-**1) Automatischer Floating Button** (Default)
-Nach der ersten Entscheidung erscheint unten links ein kleiner Cookie-Button. Klick öffnet den Einstellungs-Dialog. Position konfigurierbar:
+**1) Automatic floating button** (default)
+After the first decision, a small cookie button appears at the bottom left. Clicking it opens the settings dialog. Position is configurable:
 
 ```js
 app.use(VueConsentGtm, {
@@ -499,8 +499,8 @@ app.use(VueConsentGtm, {
 })
 ```
 
-**2) Eigener Trigger** (Footer-Link, Menü-Eintrag, etc.)
-Wenn du den Floating Button ausschaltest und stattdessen deinen eigenen Trigger im Layout platzieren willst:
+**2) Your own trigger** (footer link, menu entry, etc.)
+If you disable the floating button and want to place your own trigger in your layout:
 
 ```js
 app.use(VueConsentGtm, {
@@ -522,16 +522,16 @@ const consent = useConsent()
 </template>
 ```
 
-**Kompletter Widerruf** (Zustimmung löschen und Banner erneut zeigen):
+**Full revocation** (delete consent and show banner again):
 ```js
 consent.reset()
 ```
 
 ## Styling
 
-Alle Farben, Radien und Abstände sind per CSS-Variablen anpassbar.
+All colors, radii and spacings are adjustable via CSS variables.
 
-**Banner + Einstellungs-Dialog:**
+**Banner + settings dialog:**
 ```css
 .pdc-root {
   --pdc-primary: #0057ff;
@@ -549,7 +549,7 @@ Alle Farben, Radien und Abstände sind per CSS-Variablen anpassbar.
 }
 ```
 
-**Floating Cookie-Button:**
+**Floating cookie button:**
 ```css
 .pdc-fab {
   --pdc-fab-size: 44px;
@@ -562,7 +562,7 @@ Alle Farben, Radien und Abstände sind per CSS-Variablen anpassbar.
 }
 ```
 
-**Dark-Mode-Beispiel:**
+**Dark-mode example:**
 ```css
 @media (prefers-color-scheme: dark) {
   .pdc-root {
@@ -580,7 +580,7 @@ Alle Farben, Radien und Abstände sind per CSS-Variablen anpassbar.
 }
 ```
 
-Du kannst die Standard-Komponente auch komplett ersetzen und lediglich `useConsent()` in deiner eigenen UI verwenden. Deaktiviere dazu Banner und Floating-Button:
+You can also fully replace the default component and only use `useConsent()` in your own UI. To do so, disable the banner and floating button:
 ```js
 app.use(VueConsentGtm, {
   gtmId: '…',
@@ -588,72 +588,72 @@ app.use(VueConsentGtm, {
   floatingButton: { enabled: false }
 })
 ```
-Und importiere bei Bedarf die Einzelkomponenten:
+And import the individual components as needed:
 ```js
 import { CookieBanner, FloatingConsentButton } from 'vue-consent-gtm'
 ```
 
-## GTM-Setup — Schritt für Schritt
+## GTM setup — step by step
 
-Das Plugin liefert nur die **Consent-Signale** an den `dataLayer`. Ob deine Tags diese Signale respektieren, entscheidet sich im GTM-Container. Ohne die folgenden Schritte werden Tags trotz Ablehnung feuern — dann ist der Consent-Layer wirkungslos.
+The plugin only delivers the **consent signals** to the `dataLayer`. Whether your tags respect these signals is decided in the GTM container. Without the following steps, tags will fire despite rejection — the consent layer would then be pointless.
 
-### 1) GTM-Container-ID besorgen
+### 1) Get your GTM container ID
 
-In [tagmanager.google.com](https://tagmanager.google.com) einen Container anlegen (Web-Plattform). Die ID hat das Format `GTM-XXXXXXX` und wird als `gtmId` an das Plugin übergeben:
+Create a container (Web platform) at [tagmanager.google.com](https://tagmanager.google.com). The ID has the format `GTM-XXXXXXX` and is passed as `gtmId` to the plugin:
 
 ```js
 app.use(VueConsentGtm, { gtmId: 'GTM-XXXXXXX' })
 ```
 
-Das Plugin injiziert den GTM-Loader selbst. **Den GTM-Snippet-Code aus der GTM-Oberfläche nicht zusätzlich ins HTML kleben** — sonst wird GTM zweimal geladen und der Consent-Default kann zu spät kommen.
+The plugin injects the GTM loader itself. **Do not additionally paste the GTM snippet code from the GTM UI into your HTML** — otherwise GTM will load twice and the consent default may come too late.
 
-### 2) Consent Overview in GTM aktivieren
+### 2) Enable Consent Overview in GTM
 
-In GTM: **Admin → Container-Einstellungen → Consent Overview** aktivieren. Damit siehst du in der Tag-Liste eine Consent-Spalte und kannst pro Tag die benötigten Signale hinterlegen.
+In GTM: **Admin → Container Settings → Consent Overview** enable. This shows a consent column in the tag list and lets you set the required signals per tag.
 
-### 3) Built-in-Consent-Signale pro Tag setzen
+### 3) Set built-in consent signals per tag
 
-Jedes Tag, das Cookies setzt oder personenbezogene Daten sendet, öffnen → **„Consent Settings"** → **„Require additional consent for tag to fire"** → passende Signale auswählen:
+Open each tag that sets cookies or sends personal data → **"Consent Settings"** → **"Require additional consent for tag to fire"** → choose the appropriate signals:
 
-| Tag-Typ | Erforderliche Signale |
+| Tag type | Required signals |
 |---|---|
 | Google Analytics 4 (Config + Events) | `analytics_storage` |
 | Google Ads Conversion / Remarketing | `ad_storage`, `ad_user_data`, `ad_personalization` |
 | Floodlight | `ad_storage`, `ad_user_data`, `ad_personalization` |
 | Meta / Facebook Pixel (Custom HTML) | `ad_storage`, `ad_user_data`, `ad_personalization` |
 | LinkedIn Insight (Custom HTML) | `ad_storage`, `ad_user_data`, `ad_personalization` |
-| Personalisierung / A-B-Testing | `personalization_storage` |
-| Reine Session-/Sicherheits-Tags | `security_storage`, `functionality_storage` |
+| Personalization / A/B testing | `personalization_storage` |
+| Purely session / security tags | `security_storage`, `functionality_storage` |
 
-Google-eigene Tags (GA4, Ads) prüfen die Signale zusätzlich intern über Consent Mode v2 — d. h. sie schalten bei `denied` in einen Ping-/Cookieless-Modus. Custom-HTML-Tags (Meta, LinkedIn, TikTok, …) prüfen **nichts von selbst** und müssen zwingend über „Require additional consent" gebunden werden.
+Google's own tags (GA4, Ads) also check the signals internally via Consent Mode v2 — i.e. on `denied` they switch to a ping / cookieless mode. Custom HTML tags (Meta, LinkedIn, TikTok, …) check **nothing on their own** and must be bound via "Require additional consent".
 
-### 4) Zusätzliche Consent-Flags aktivieren (empfohlen)
+### 4) Enable additional consent flags (recommended)
 
-In den **Container-Einstellungen → Erweitert** aktivieren:
+In **Container Settings → Advanced** enable:
 
-- **URL Passthrough** — verhindert, dass Kampagnen-Parameter (`gclid`, `utm_*`) durch fehlende Cookies verloren gehen
-- **Ads Data Redaction** — schwärzt IP-Anteile und Klick-IDs bei fehlender Ad-Einwilligung
+- **URL Passthrough** — prevents campaign parameters (`gclid`, `utm_*`) from being lost due to missing cookies
+- **Ads Data Redaction** — redacts IP portions and click IDs when ad consent is missing
 
-Das Plugin sendet diese beiden Flags zusätzlich auf Wunsch schon vor dem GTM-Load an den `dataLayer`. Die Aktivierung im GTM-UI ist trotzdem empfohlen, damit die Einstellung auch für serverseitige GTM-Container gilt.
+The plugin can also send these two flags to the `dataLayer` before the GTM load. Enabling them in the GTM UI is still recommended so the setting also applies to server-side GTM containers.
 
-### 5) Trigger für Custom-Events aus `trackEvent()`
+### 5) Trigger for custom events from `trackEvent()`
 
-Das Plugin pusht bei `consent.trackEvent('cta_click', { label: 'Hero' }, { requires: 'analytics' })` folgendes Objekt in den `dataLayer`:
+When you call `consent.trackEvent('cta_click', { label: 'Hero' }, { requires: 'analytics' })`, the plugin pushes the following object to the `dataLayer`:
 
 ```jsonc
 { "event": "cta_click", "label": "Hero" }
 ```
 
-In GTM einen Trigger vom Typ **Custom Event** mit **Event-Name = `cta_click`** anlegen und an das gewünschte Tag hängen. Die Payload-Felder (hier `label`) stehen als **Data-Layer-Variable** mit exakt diesem Namen zur Verfügung.
+In GTM, create a trigger of type **Custom Event** with **Event name = `cta_click`** and attach it to the desired tag. The payload fields (here `label`) are available as a **Data Layer Variable** with exactly this name.
 
-### 6) `cookie_consent_update`-Event (automatisch bei jeder Änderung)
+### 6) `cookie_consent_update` event (automatic on every change)
 
-Bei **jeder Consent-Änderung** (Accept/Reject/Save/Reset) pusht das Plugin automatisch dieses Event in den `dataLayer` — ohne dass du im `onConsentChange`-Callback etwas tun musst:
+On **every consent change** (Accept/Reject/Save/Reset), the plugin automatically pushes this event to the `dataLayer` — without you having to do anything in the `onConsentChange` callback:
 
 ```jsonc
 {
   "event": "cookie_consent_update",
-  "consent_reason": "update",             // "update" oder "reset"
+  "consent_reason": "update",             // "update" or "reset"
   "consent": {
     "necessary": true,
     "preferences": false,
@@ -672,29 +672,29 @@ Bei **jeder Consent-Änderung** (Accept/Reject/Save/Reset) pusht das Plugin auto
 }
 ```
 
-Damit kannst du in GTM:
-- **Trigger** auf `cookie_consent_update` legen und pro Kategorie oder Signal filtern
-- **Data-Layer-Variablen** mit Dot-Notation lesen: `consent.marketing`, `consent_signals.ad_storage`, `consent_reason`
-- Custom-HTML-Pixel (Meta, LinkedIn, TikTok) live auf Änderungen reagieren lassen — ohne Reload
+With this, in GTM you can:
+- Set **triggers** on `cookie_consent_update` and filter per category or signal
+- Read **Data Layer Variables** with dot notation: `consent.marketing`, `consent_signals.ad_storage`, `consent_reason`
+- Have custom-HTML pixels (Meta, LinkedIn, TikTok) react live to changes — no reload
 
-#### Anwendungsfall: Meta Pixel live revoken/granten (ohne Reload)
+#### Use case: live revoke/grant of Meta Pixel (no reload)
 
-Meta Pixel bleibt nach dem ersten Laden im Browser-Speicher — Consent Settings blockieren nur **neue** Firings, entfernen aber nicht den bereits geladenen Pixel. Über das `cookie_consent_update`-Event lässt sich der Pixel **live** stoppen bzw. wieder aktivieren:
+Meta Pixel stays in browser memory after the first load — consent settings only block **new** firings but don't remove the already-loaded pixel. Using the `cookie_consent_update` event, the pixel can be **actively** stopped or reactivated:
 
-**Data Layer Variable anlegen:**
+**Create a Data Layer Variable:**
 - Name: `dlv_consent_marketing`
 - Data Layer Variable Name: `consent.marketing`
 
-**Zwei Trigger anlegen (beide vom Typ Custom Event):**
+**Create two triggers (both of type Custom Event):**
 
-| Trigger-Name | Event Name | Filter |
+| Trigger name | Event name | Filter |
 |---|---|---|
 | CE — Marketing Granted | `cookie_consent_update` | `dlv_consent_marketing` **equals** `true` |
 | CE — Marketing Revoked | `cookie_consent_update` | `dlv_consent_marketing` **equals** `false` |
 
-**Zwei Custom-HTML-Tags anlegen** (beide **ohne** Consent Settings — sonst blockieren sie sich selbst):
+**Create two Custom HTML tags** (both **without** consent settings — otherwise they'd block themselves):
 
-*Tag „Meta Pixel — Grant":*
+*Tag "Meta Pixel — Grant":*
 ```html
 <script>
   if (typeof fbq === 'function') fbq('consent', 'grant');
@@ -702,7 +702,7 @@ Meta Pixel bleibt nach dem ersten Laden im Browser-Speicher — Consent Settings
 ```
 Trigger: `CE — Marketing Granted`
 
-*Tag „Meta Pixel — Revoke":*
+*Tag "Meta Pixel — Revoke":*
 ```html
 <script>
 (function() {
@@ -726,65 +726,65 @@ Trigger: `CE — Marketing Granted`
 ```
 Trigger: `CE — Marketing Revoked`
 
-Am **bestehenden Meta-Pixel-Base-Tag** den `cookie_consent_update`-Trigger durch **`CE — Marketing Granted`** ersetzen, damit der Base-Tag nur bei tatsächlichem Grant re-feuert und nicht bei jedem Deny-Klick unnötig getriggert wird.
+On the **existing Meta Pixel base tag**, replace the `cookie_consent_update` trigger with **`CE — Marketing Granted`** so the base tag only re-fires on an actual grant rather than being triggered unnecessarily on every deny click.
 
-### 7) Verifikation im GTM Preview-Modus
+### 7) Verification in GTM preview mode
 
-1. In GTM auf **Preview** klicken → deine Domain öffnen → **Tag Assistant** verbindet sich.
-2. **Vor** jeder Nutzerentscheidung im Tag Assistant links auf den ersten Event-Eintrag klicken → Reiter **„Consent"**:
-   Alle Signale außer `security_storage` müssen auf **denied** stehen. Kein Analytics-/Ads-Tag darf gefeuert haben.
-3. Im Banner **„Alle akzeptieren"** klicken. Im Tag Assistant erscheint ein `consent update`-Event, alle Signale gehen auf **granted**, jetzt feuern GA4/Ads-Tags.
-4. **„Alle ablehnen"** testen: alle Signale bleiben `denied`, Google-Tags feuern im Cookieless-Modus (keine `_ga`-, `_gcl_*`-, `_fbp`-Cookies im **Application → Cookies**-Tab), Custom-HTML-Tags feuern gar nicht.
-5. `consent.reset()` in der Devtools-Konsole aufrufen → Banner erscheint erneut → Punkt 2 muss wieder gelten.
+1. In GTM, click **Preview** → open your domain → **Tag Assistant** connects.
+2. **Before** any user decision, click the first event entry on the left in Tag Assistant → tab **"Consent"**:
+   All signals except `security_storage` must be **denied**. No analytics / ads tag may have fired.
+3. Click **"Accept all"** in the banner. In Tag Assistant, a `consent update` event appears, all signals go to **granted**, and now GA4/Ads tags fire.
+4. Test **"Reject all"**: all signals stay `denied`, Google tags fire in cookieless mode (no `_ga`, `_gcl_*`, `_fbp` cookies in the **Application → Cookies** tab), custom HTML tags don't fire at all.
+5. Call `consent.reset()` in the devtools console → banner appears again → step 2 must apply again.
 
-### 8) Häufige Fehler
+### 8) Common mistakes
 
-- **GTM-Snippet doppelt eingebunden** (im `index.html` **und** über das Plugin) → Consent-Default kommt zu spät, weil das erste GTM schon geladen hat. Nur das Plugin einbinden.
-- **Consent Settings am Tag leergelassen** → Tag feuert trotz Ablehnung. Für jedes optionale Tag „Require additional consent" setzen.
-- **`gtmId` fehlt / falsch** → das Plugin loggt eine Warnung und setzt trotzdem den Consent-Default. Ohne gültige ID lädt GTM nie.
-- **`loadGtmOnlyAfterConsent: true` gewählt, aber GA4-Events werden vor Zustimmung erwartet** → in diesem Modus existiert kein `dataLayer`-Consumer, bis der Nutzer zustimmt. Für Cookieless-Pings **`loadGtmOnlyAfterConsent: false`** (Default) lassen.
-- **Custom-HTML-Tag ohne Consent-Bindung** (Meta/LinkedIn/TikTok) → feuert trotz Ablehnung. Consent Mode v2 schützt **nur** Google-Tags automatisch.
+- **GTM snippet included twice** (in `index.html` **and** via the plugin) → consent default comes too late because the first GTM has already loaded. Only include it via the plugin.
+- **Consent settings on the tag left empty** → tag fires despite rejection. Set "Require additional consent" for every optional tag.
+- **`gtmId` missing / wrong** → the plugin logs a warning and still sets the consent default. Without a valid ID, GTM never loads.
+- **`loadGtmOnlyAfterConsent: true` chosen, but GA4 events expected before consent** → in this mode there is no `dataLayer` consumer until the user consents. For cookieless pings, leave **`loadGtmOnlyAfterConsent: false`** (default).
+- **Custom HTML tag without consent binding** (Meta/LinkedIn/TikTok) → fires despite rejection. Consent Mode v2 **only** protects Google tags automatically.
 
-## DSGVO — was das Plugin technisch erzwingt
+## GDPR — what the plugin technically enforces
 
-1. Optionale Kategorien starten auf `false` (Opt-in)
-2. Consent Mode v2 Default = `denied` **vor** dem Laden von GTM-Tags
-3. „Alle ablehnen" ist gleichwertig zu „Alle akzeptieren"
-4. Kategorien einzeln wählbar im Einstellungs-Dialog
-5. Nachweisbar: Zeitstempel + Policy-Version im `localStorage`
-6. Erneute Abfrage bei geänderter `consentVersion` oder nach Ablauf
-7. Widerruf jederzeit — via Floating-Button, `openSettings()` oder `reset()`
-8. Empfohlene GTM-Flags aktiv (`url_passthrough`, `ads_data_redaction`)
+1. Optional categories start on `false` (opt-in)
+2. Consent Mode v2 default = `denied` **before** any GTM tags load
+3. "Reject all" is equivalent to "Accept all"
+4. Categories individually selectable in the settings dialog
+5. Auditable: timestamp + policy version in `localStorage`
+6. Re-prompt on changed `consentVersion` or after expiry
+7. Revocation at any time — via floating button, `openSettings()` or `reset()`
+8. Recommended GTM flags active (`url_passthrough`, `ads_data_redaction`)
 
-> Hinweis: Vollständige Rechtssicherheit hängt zusätzlich von Datenschutzerklärung, konkretem GTM-Setup und ggf. anwaltlicher Prüfung ab.
+> Note: Full legal certainty additionally depends on your privacy policy, concrete GTM setup and, if necessary, legal review.
 
-## Updates in deine SPA holen
+## Getting updates into your SPA
 
-Neue Version des Plugins verfügbar? In der SPA:
+New version of the plugin available? In your SPA:
 
 ```bash
-npm update vue-consent-gtm            # holt neueste kompatible Version (^0.x)
-# oder gezielt:
+npm update vue-consent-gtm            # get the latest compatible version (^0.x)
+# or specifically:
 npm install vue-consent-gtm@latest
-npm ls vue-consent-gtm                # prüft welche Version installiert ist
+npm ls vue-consent-gtm                # check which version is installed
 ```
 
-## Entwicklung
+## Development
 
 ```bash
-# Repository klonen und Abhängigkeiten installieren
+# Clone repository and install dependencies
 npm install
 
-# .env aus Beispiel erstellen
+# Create .env from example
 cp .env.example .env
 
-# Dev-Server für die Demo starten
+# Start dev server for the demo
 npm run dev
 
-# Library für Produktion bauen (ESM + UMD nach dist/)
+# Build library for production (ESM + UMD to dist/)
 npm run build
 ```
 
-## Lizenz
+## License
 
 MIT
